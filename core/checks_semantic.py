@@ -3,8 +3,9 @@
 Sends brief text to Claude to evaluate section presence, adequacy,
 and content quality per ND Rules of Appellate Procedure.
 
-The actual rule text is loaded from local files at ~/cDocs/refs/rules/ndrappp/
-and included in the prompt so Claude can verify its citations against
+Rule text is loaded from bundled files in references/rules/ (project dir)
+or ~/.claude/skills/brief-compliance/references/rules/ (skill dir) and
+included in the prompt so Claude can verify its citations against
 the authoritative text.
 """
 
@@ -22,9 +23,6 @@ from core.models import BriefMetadata, BriefType, CheckResult, Severity
 # Bundled rules directory (shipped with the skill/project)
 _SKILL_RULES_DIR = Path.home() / ".claude" / "skills" / "brief-compliance" / "references" / "rules"
 _PROJECT_RULES_DIR = Path(__file__).resolve().parent.parent / "references" / "rules"
-
-# Legacy: user's local archive (checked as fallback)
-_LOCAL_RULES_DIR = Path.home() / "cDocs" / "refs" / "rules" / "ndrappp"
 
 # Which rule files are needed for semantic checks
 REQUIRED_RULES = [
@@ -121,7 +119,7 @@ SEMANTIC_CHECKS = [
 
 def _find_rule_file(filename: str) -> Path | None:
     """Find a rule file, checking bundled locations first, then legacy path."""
-    for rules_dir in (_SKILL_RULES_DIR, _PROJECT_RULES_DIR, _LOCAL_RULES_DIR):
+    for rules_dir in (_SKILL_RULES_DIR, _PROJECT_RULES_DIR):
         candidate = rules_dir / filename
         if candidate.exists():
             return candidate
@@ -131,9 +129,8 @@ def _find_rule_file(filename: str) -> Path | None:
 def _load_rules_text() -> str:
     """Load rule text from bundled files (shipped with the skill/project).
 
-    Checks bundled locations first, then falls back to the user's local
-    archive at ~/cDocs/. If a rule file is not found anywhere, includes
-    a placeholder noting the gap.
+    Checks the skill directory first, then the project's references/rules/.
+    If a rule file is not found, includes a placeholder noting the gap.
     """
     parts = []
     for filename in REQUIRED_RULES:
