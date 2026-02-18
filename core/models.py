@@ -87,6 +87,10 @@ class ComplianceReport:
     metadata: Optional[BriefMetadata] = None
     claude_reasoning: str = ""
     report_id: str = ""
+    case_number: str = ""       # e.g. "20990001"
+    case_title: str = ""        # e.g. "Example v. Case et al."
+    brief_label: str = ""       # e.g. "Amended Brief of Defendant-Appellant"
+    pdf_filename: str = ""      # original PDF filename
 
     @property
     def failed_checks(self) -> list[CheckResult]:

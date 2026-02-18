@@ -39,12 +39,25 @@ def build_html_report(report: ComplianceReport) -> str:
     meta = report.metadata
     brief_type_label = meta.brief_type.value.replace("_", " ").title() if meta else "Unknown"
 
+    # Build descriptive header
+    title_line = "Appellate Brief Compliance Report"
+    if report.case_title:
+        title_line = f"{_esc(report.case_title)}"
+    subtitle_parts = []
+    if report.case_number:
+        subtitle_parts.append(f"No. {_esc(report.case_number)}")
+    if report.brief_label:
+        subtitle_parts.append(_esc(report.brief_label))
+    elif brief_type_label != "Unknown":
+        subtitle_parts.append(f"{brief_type_label} Brief")
+    subtitle_line = " — ".join(subtitle_parts) if subtitle_parts else "North Dakota Rules of Appellate Procedure"
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Brief Compliance Report — {report.report_id}</title>
+<title>Compliance Report — {_esc(report.case_title) if report.case_title else report.report_id}</title>
 <style>
 {_css()}
 </style>
@@ -52,8 +65,9 @@ def build_html_report(report: ComplianceReport) -> str:
 <body>
 <div class="container">
   <header>
-    <h1>Appellate Brief Compliance Report</h1>
-    <p class="subtitle">North Dakota Rules of Appellate Procedure</p>
+    <p class="report-type">Brief Compliance Report</p>
+    <h1>{title_line}</h1>
+    <p class="subtitle">{subtitle_line}</p>
   </header>
 
   <div class="banner" style="background:{banner_bg}; border-color:{banner_color}; color:{banner_color};">
@@ -176,6 +190,7 @@ def _css() -> str:
 body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f6f8fa; color: #24292e; line-height: 1.5; }
 .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
 header { text-align: center; margin-bottom: 1.5rem; }
+header .report-type { color: #586069; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
 header h1 { font-size: 1.6rem; font-weight: 600; }
 header .subtitle { color: #586069; font-size: 0.95rem; }
 .banner { border: 2px solid; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
