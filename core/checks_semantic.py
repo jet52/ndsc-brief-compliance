@@ -30,6 +30,7 @@ REQUIRED_RULES = [
     "rule-29.md",   # N.D.R.App.P. 29 — Brief of an Amicus Curiae
     "rule-32.md",   # N.D.R.App.P. 32 — Form of Briefs and Other Documents
     "rule-34.md",   # N.D.R.App.P. 34 — Oral Argument
+    "rule-30.md",   # N.D.R.App.P. 30 — References to the Record
     "rule-3.4.md",  # N.D.R.Ct. 3.4 — Privacy Protection for Filings
 ]
 
@@ -114,6 +115,16 @@ SEMANTIC_CHECKS = [
     ("CNT-003", "Statutes/Rules in Brief or Addendum", "28(g)",
      None, Severity.NOTE,
      "Pertinent statutes and rules must be set forth in the brief or addendum."),
+
+    # Rule 30(b)(1): record citations should use (R{index}:{page}) format
+    ("REC-002", "Record Citation Format", "30(b)(1)",
+     [BriefType.APPELLANT, BriefType.APPELLEE, BriefType.CROSS_APPEAL], Severity.CORRECTION,
+     "Record citations should use the (R{index}:{page}) format per Rule 30(b)(1)."),
+
+    # Rule 30(a): record references should identify the item cited
+    ("REC-003", "Record Citations Identify Items", "30(a)",
+     [BriefType.APPELLANT, BriefType.APPELLEE, BriefType.CROSS_APPEAL], Severity.NOTE,
+     "Record references should include information identifying the item cited, e.g. 'Statement of John Doe.'"),
 ]
 
 
@@ -257,6 +268,15 @@ Evaluation guidance:
 - CNT-003: Rule 28(g) requires that if "the court's determination of the issues presented
   requires the study of statutes, rules, regulations, etc., the relevant parts must be set
   out in the brief or in an addendum."
+- REC-002: Rule 30(b)(1) requires record citations in the format (R{{index}}:{{page}}), e.g.
+  (R156:12). Check whether record references in the brief consistently use this format. Note
+  any citations that use other formats (e.g., "App. 15", "Doc. 23", "Tr. 45") instead of the
+  required (R#:#) format. If the brief uses a mix of formats, note which are non-compliant.
+- REC-003: Rule 30(a) requires that record references include "information identifying the
+  item," e.g. "Statement of John Doe." Check whether the brief's record citations provide
+  enough context to identify what is being cited, either in the text surrounding the citation
+  or in the citation itself. Bare citations like (R12:5) with no surrounding context about
+  what the item is should be flagged.
 
 Return ONLY valid JSON, no markdown formatting."""
 

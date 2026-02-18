@@ -44,6 +44,7 @@ def run_mechanical_checks(metadata: BriefMetadata) -> list[CheckResult]:
     results.append(_check_oral_argument(metadata))
     results.append(_check_paragraph_numbering(metadata))
     results.append(_check_certificate_of_compliance(metadata))
+    results.append(_check_record_citations(metadata))
 
     return results
 
@@ -456,6 +457,38 @@ def _check_certificate_of_compliance(metadata: BriefMetadata) -> CheckResult:
         passed=False, severity=Severity.CORRECTION,
         message="Certificate of Compliance not found.",
         details="Rule 32(d) requires a Certificate of Compliance.",
+    )
+
+
+def _check_record_citations(metadata: BriefMetadata) -> CheckResult:
+    """REC-001: Record citations present in brief (Rule 30(a))."""
+    # Only applicable to briefs that cite the record
+    applicable_types = {BriefType.APPELLANT, BriefType.APPELLEE, BriefType.CROSS_APPEAL}
+    if metadata.brief_type not in applicable_types:
+        return CheckResult(
+            check_id="REC-001", name="Record Citations Present", rule="30(a)",
+            passed=True, severity=Severity.NOTE,
+            message=f"Not applicable to {metadata.brief_type.value} briefs.",
+            applicable=False,
+        )
+
+    # Look for (R{index}:{page}) pattern per Rule 30(b)(1)
+    record_cites = re.findall(r"\(R\d+:\d+", metadata.full_text)
+    count = len(record_cites)
+
+    if count > 0:
+        return CheckResult(
+            check_id="REC-001", name="Record Citations Present", rule="30(a)",
+            passed=True, severity=Severity.NOTE,
+            message=f"Found {count} record citation(s) in (R#:#) format.",
+        )
+
+    return CheckResult(
+        check_id="REC-001", name="Record Citations Present", rule="30(a)",
+        passed=False, severity=Severity.NOTE,
+        message="No record citations in (R#:#) format detected.",
+        details="Rule 30(a) requires references to the record with register of actions "
+                "index numbers. Rule 30(b)(1) specifies the (R{index}:{page}) format.",
     )
 
 
