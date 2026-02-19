@@ -53,6 +53,12 @@ If Claude does not seem to recognize the skill, double-check that:
 - The ZIP file was uploaded to the project (not just to a regular chat).
 - The SKILL.md contents were pasted into the project's Custom Instructions.
 
+### A Note on Scope
+
+The skill lives inside the project you created — it is not available in other projects or in regular (non-project) chats. Claude does not currently offer a way to install a skill globally across your entire account.
+
+In practice this isn't a limitation: just **open all your brief-checking chats inside this one project**. You can create as many chats as you like within a project, and every one of them will have access to the skill files and instructions automatically. Think of the project as a dedicated "Brief Compliance Checker" app that's always ready when you need it.
+
 ---
 
 ## Using the Skill
