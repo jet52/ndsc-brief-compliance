@@ -27,6 +27,7 @@ from core.brief_classifier import classify_brief
 from core.checks_mechanical import run_mechanical_checks
 from core.models import BriefType
 from core.pdf_extract import extract_brief
+from core.version_check import get_version_warnings
 
 
 def main():
@@ -43,7 +44,14 @@ def main():
                         help="Run only extraction + mechanical checks; dump intermediate JSON (no API calls)")
     parser.add_argument("--model", default=None,
                         help="Claude model to use (default: from env or claude-sonnet-4-5-20250929)")
+    parser.add_argument("--skip-version-check", action="store_true",
+                        help="Skip remote version check")
     args = parser.parse_args()
+
+    # Version and rule freshness warnings
+    warnings = get_version_warnings(check_remote=not args.skip_version_check)
+    for w in warnings:
+        print(f"Warning: {w}", file=sys.stderr)
 
     pdf_path = Path(args.pdf).resolve()
     if not pdf_path.exists():
@@ -105,6 +113,7 @@ def main():
     from core.models import ComplianceReport
     from core.recommender import compute_recommendation
     from core.report_builder import build_html_report
+    from core.version_check import get_version_stamp
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     model = args.model or os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
@@ -138,7 +147,7 @@ def main():
         report_id=uuid.uuid4().hex[:12],
     )
 
-    html = build_html_report(report)
+    html = build_html_report(report, version_stamp=get_version_stamp())
     pdf_stem = pdf_path.stem
     report_filename = f"compliance-{pdf_stem}-{report.report_id}.html"
     report_path = output_dir / report_filename
