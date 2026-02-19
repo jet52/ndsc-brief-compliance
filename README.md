@@ -23,7 +23,9 @@ This section walks you through adding the Brief Compliance Checker to your Claud
 4. Give your project a name, such as "Brief Compliance Checker".
 5. Click **Create**.
 
-#### 2. Upload the Skill Files
+#### 2. Upload the Skill Files to Project Knowledge
+
+> **Important — upload to the *project*, not to a chat.** Files uploaded to Project Knowledge are available in every chat you open inside that project. If you instead drag a file into a regular chat window, it only exists in that single conversation and disappears when you start a new one. Make sure you are adding the file through the project settings, not the chat input box.
 
 1. Inside your new project, look for the **Project Knowledge** section (sometimes labeled "Project files" or accessible via a paperclip/attachment icon in the project settings).
 2. Click **Upload** or **Add files**.
