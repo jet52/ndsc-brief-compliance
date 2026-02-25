@@ -11,7 +11,7 @@ This section walks you through adding the Brief Compliance Checker to your Claud
 ### What You Need Before You Start
 
 - A Claude account at [claude.ai](https://claude.ai) with a Pro, Team, or Enterprise plan (the skill requires the ability to upload files and use projects).
-- The **`brief-compliance.zip`** file from this repository. You can download it from the repository's file list by clicking on `brief-compliance.zip` and then clicking the download button.
+- The **`brief-compliance.zip`** file from this repository ([v1.5.0](https://github.com/jet52/ndsc-brief-compliance/releases/tag/v1.5.0) or later). Click on `brief-compliance.zip` in the repository file list and then click the download button.
 
 ### Step-by-Step Installation
 
@@ -32,7 +32,7 @@ This section walks you through adding the Brief Compliance Checker to your Claud
 3. Select the **`brief-compliance.zip`** file you downloaded earlier.
 4. Wait for the upload to finish. Claude will unpack and index the contents automatically.
 
-The ZIP file contains everything the skill needs: the analysis scripts, the bundled North Dakota appellate rules, check definitions, and the skill instructions.
+The ZIP file contains everything the skill needs: the analysis scripts, the bundled North Dakota appellate rules, check definitions, and the skill instructions. As of v1.5.0, `SKILL.md` is fully self-contained — all rule text and check definitions are bundled inline, so the skill works even without PyMuPDF (falling back to semantic-only checks).
 
 #### 3. Set the Project Instructions
 
@@ -86,6 +86,8 @@ Once installed, using the skill is straightforward. You upload a PDF of an appel
    - **Mechanical checks** — compares measurements against Rule 32 requirements.
    - **Semantic checks** — reads the brief text and evaluates whether required sections are present and adequate (Table of Contents, Statement of Issues, Argument, etc.).
    - **Report generation** — combines all results into an HTML compliance report.
+
+   > **Note:** If PyMuPDF is not available (e.g., in a claude.ai project), the skill automatically falls back to semantic-only checks. Claude reads the PDF directly and produces a text report, noting that mechanical checks (margins, fonts, spacing, page limits) were skipped.
 
 5. **Review the results.** Claude will:
    - State the **recommended action**: Accept, Correction Letter, or Reject.
@@ -178,7 +180,7 @@ python app.py
 - **`scripts/`** — CLI scripts for the Claude Code skill workflow (`check_brief.py`, `build_report.py`)
 - **`references/`** — Check definitions, rules summary, and bundled rule text
 - **`web/`** — Flask web interface (upload form, report viewer, JSON API)
-- **`SKILL.md`** — Claude Code skill definition (deployed via symlink)
+- **`SKILL.md`** — Self-contained Claude Code skill definition (bundles all rules and check definitions inline; works with or without PyMuPDF)
 - **`deploy_skill.py`** — Cross-platform script to deploy the skill to `~/.claude/skills/`
 
 ## Skill Deployment (Claude Code CLI)

@@ -102,8 +102,7 @@ Run the report builder to merge results and generate the HTML report:
 ```bash
 python scripts/build_report.py \
   --intermediate "<intermediate-json-path>" \
-  --semantic "<semantic-json-path>" \
-  [--output-dir /tmp]
+  --semantic "<semantic-json-path>"
 ```
 
 The script will:
@@ -111,7 +110,7 @@ The script will:
 2. Load semantic results from the semantic JSON
 3. Merge into a single results list
 4. Compute a recommendation using hard-rule logic (no API call)
-5. Generate an HTML report
+5. Generate an HTML report named `<brief-stem>-compliance.html` in the same directory as the original PDF
 6. Print a JSON summary to stdout
 
 #### Phase 4: Report to User
