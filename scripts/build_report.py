@@ -190,11 +190,11 @@ def main():
 
     html = build_html_report(report, version_stamp=get_version_stamp())
 
-    output_dir = Path(args.output_dir) if args.output_dir else intermediate_path.parent
+    pdf_source = Path(intermediate["pdf_path"])
+    output_dir = Path(args.output_dir) if args.output_dir else pdf_source.parent
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    pdf_stem = Path(intermediate["pdf_path"]).stem
-    report_filename = f"compliance-{pdf_stem}-{report_id}.html"
+    report_filename = f"{pdf_source.stem}-compliance.html"
     report_path = output_dir / report_filename
     report_path.write_text(html, encoding="utf-8")
 
