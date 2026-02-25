@@ -36,21 +36,21 @@ The user uploads a PDF via drag-and-drop. Save the uploaded file to a temporary 
 
 ### Phase 0: Save the Uploaded PDF
 
-Save the uploaded file so scripts can access it:
+Save the uploaded file to the current working directory, preserving its original filename:
 
 ```python
-import shutil
-shutil.copy("<uploaded-file-path>", "/tmp/brief.pdf")
+import shutil, os
+shutil.copy("<uploaded-file-path>", os.path.basename("<uploaded-file-path>"))
 ```
 
-Use `/tmp/` as the working directory for all intermediate and output files.
+All intermediate and output files use the PDF stem in their names to avoid collisions (e.g., `Smith-v-Jones-Apt-Br-intermediate.json`, `Smith-v-Jones-Apt-Br-semantic.json`, `Smith-v-Jones-Apt-Br-compliance.html`).
 
 ### Phase 1: Try Mechanical Checks
 
 Run the check script in mechanical-only mode. This makes **no API calls**:
 
 ```bash
-python3 scripts/check_brief.py "/tmp/brief.pdf" --mechanical-only [--brief-type auto|appellant|appellee|reply|cross_appeal|amicus] [--output-dir /tmp]
+python3 scripts/check_brief.py "<filename>.pdf" --mechanical-only [--brief-type auto|appellant|appellee|reply|cross_appeal|amicus]
 ```
 
 - **If the script succeeds**: Capture the intermediate JSON file path from stdout. Continue to **Phase 2 (Full Mode)**.
@@ -72,7 +72,7 @@ You (Claude) perform the semantic analysis directly — no API call needed.
 
 4. **Evaluate each applicable semantic check** against the brief text, following the evaluation guidance in the Check Definitions. Filter by brief type first (see "Applicability by Brief Type" in Check Definitions).
 
-5. **Write the semantic results** to a JSON file at `<output-dir>/<pdf-stem>-semantic.json` (same directory as the intermediate JSON). Use this exact schema:
+5. **Write the semantic results** to `<pdf-stem>-semantic.json` in the current working directory. Use this exact schema:
 
 ```json
 {
