@@ -1,9 +1,9 @@
 ---
 name: jetbriefcheck
-version: 1.6.1
+version: 1.0.0-iowa
 description: >-
   Triggers when a user uploads a legal brief PDF for compliance review against the
-  North Dakota Rules of Appellate Procedure. Analyzes the brief and produces a
+  Iowa Rules of Appellate Procedure. Analyzes the brief and produces a
   compliance report with a recommended action (Accept, Correction Letter, or Reject).
   Works with or without PyMuPDF — falls back to semantic-only checks when PyMuPDF
   is unavailable.
@@ -15,18 +15,18 @@ triggers:
   - appellate brief
   - legal brief review
   - brief PDF
-  - ND rules compliance
+  - Iowa rules compliance
 ---
 
-# Appellate Brief Compliance Checker
+# Appellate Brief Compliance Checker — Iowa
 
 ## What This Skill Does
 
-Analyzes an appellate brief PDF against the North Dakota Rules of Appellate Procedure and produces a detailed compliance report. The report includes:
+Analyzes an appellate brief PDF against the Iowa Rules of Appellate Procedure and produces a detailed compliance report. The report includes:
 
 - **Recommendation**: Accept, Correction Letter, or Reject
-- **Mechanical checks** (when PyMuPDF is available): Paper size, margins, font size, spacing, page limits, page numbering, cover requirements
-- **Semantic checks** (evaluated by Claude): Section presence and adequacy (TOC, TOA, Statement of Issues, Argument, etc.), party naming conventions, conciseness
+- **Mechanical checks** (when PyMuPDF is available): Paper size, margins, font size, spacing, word count limits, page numbering
+- **Semantic checks** (evaluated by Claude): Section presence and adequacy (TOC, TOA, Statement of Issues, Routing Statement, Argument, Preservation of Error, etc.), party naming conventions, conciseness
 
 This skill is self-contained. All rule text and check definitions are bundled below — no external file reads are required.
 
@@ -80,7 +80,7 @@ You (Claude) perform the semantic analysis directly — no API call needed.
     {
       "check_id": "SEC-001",
       "name": "Table of Contents Present",
-      "rule": "28(b)(1)",
+      "rule": "6.903(2)(1)",
       "passed": true,
       "severity": "reject",
       "message": "Table of Contents is present beginning on page 2.",
@@ -152,7 +152,7 @@ Produce a structured text report with:
 
 1. **Header**: Brief filename, brief type, date of analysis
 2. **Recommendation**: Apply the recommendation logic (any REJECT-severity failure → Reject; any CORRECTION-severity failure → Correction Letter; otherwise → Accept)
-3. **Note**: "Mechanical checks (margins, font size, spacing, page limits, paper size) were skipped because PyMuPDF is not available. Only semantic checks were performed."
+3. **Note**: "Mechanical checks (margins, font size, spacing, word count, paper size) were skipped because PyMuPDF is not available. Only semantic checks were performed."
 4. **Findings**: Group results by severity (REJECT, CORRECTION, NOTE), listing failed checks first, then passed checks
 5. For each failed check: check ID, name, rule reference, severity, and explanation
 
@@ -171,37 +171,34 @@ Produce a structured text report with:
 
 ## Known Issues
 
-Based on testing across 13 briefs (Feb 2026):
+Based on initial testing (Feb 2026):
 
 ### Mechanical Check False Positives
 
 Two mechanical checks have high false-positive rates. When reporting results, note these caveats to the user:
 
-- **FMT-006 (Font Size)**: Measures the minimum font found anywhere in the PDF. Small fonts in page numbers, headers, footers, superscripts, or PDF artifacts trigger REJECT even when the body text is properly 12pt. If this is the sole REJECT trigger and the reported minimum is 8-11pt, flag it as a likely false positive.
+- **FMT-006 (Font Size)**: Measures the minimum font found anywhere in the PDF. Small fonts in page numbers, headers, footers, superscripts, or PDF artifacts trigger REJECT even when the body text is properly 14pt. If this is the sole REJECT trigger and the reported minimum is 10-13pt, flag it as a likely false positive.
 - **FMT-005 (Bottom Margin)**: Page numbers at the bottom are measured as content in the margin zone. Nearly always triggers.
-
-**Fixed (v1.6.0):** FMT-009 (Spacing) previously only measured intra-block line gaps, missing PDFs that encode each line as a separate text block. Now also measures inter-block baseline distances, which correctly detects double spacing in these PDFs.
 
 ### Brief Type Auto-Detection
 
-The `--brief-type auto` flag frequently returns "unknown", especially for appellee briefs. If auto-detection fails, re-run Phase 1 with an explicit `--brief-type` flag based on the cover page text.
+The `--brief-type auto` flag may return "unknown", especially for appellee briefs. If auto-detection fails, re-run Phase 1 with an explicit `--brief-type` flag based on the cover page text.
 
 ### Detection Variants
 
-- **COV-002 (Oral Argument)**: Misses "REQUEST FOR ORAL ARGUMENT" — only matches "ORAL ARGUMENT REQUESTED".
-- **SEC-013 (Certificate of Compliance)**: Misses "CERTIFICATION OF COMPLIANCE" variant.
+- **SEC-013 (Certificate of Compliance)**: May miss "CERTIFICATION OF COMPLIANCE" variant.
 
 ### Non-Appellate Briefs
 
-The test corpus may include non-appellate briefs (e.g., "Brief in Support of Motion"). These are not subject to Rules 28/32 and should be skipped. Check the cover page and brief content before proceeding.
+Some PDF uploads may be non-appellate briefs (e.g., "Brief in Support of Motion"). These are not subject to Iowa R. App. P. 6.903 and should be skipped. Check the cover page and brief content before proceeding.
 
 ### Fallback Mode Limitations
 
-When running in fallback mode (no PyMuPDF), mechanical checks are entirely skipped. The report will not include results for paper size, margins, font size, spacing, page limits, page numbering, or cover color. Only semantic checks are evaluated.
+When running in fallback mode (no PyMuPDF), mechanical checks are entirely skipped. The report will not include results for paper size, margins, font size, spacing, word count, or page numbering. Only semantic checks are evaluated.
 
 ## References
 
-- [Rules Summary](references/rules-summary.md) — Condensed ND Rules of Appellate Procedure
+- [Rules Summary](references/rules-summary.md) — Condensed Iowa Rules of Appellate Procedure
 - [Check Definitions](references/check-definitions.md) — Full catalog of checks (also bundled below)
 - [Bundled Rules](references/rules/) — Full rule text files (also bundled below)
 
@@ -209,7 +206,7 @@ When running in fallback mode (no PyMuPDF), mechanical checks are entirely skipp
 
 ## Check Definitions
 
-All citations verified against the ND Rules of Appellate Procedure text.
+All citations verified against the Iowa Rules of Appellate Procedure.
 
 ### Mechanical Checks (Deterministic)
 
@@ -217,27 +214,21 @@ These are run by `check_brief.py` — no changes needed here.
 
 | ID | Check | Rule | Failed Severity |
 |---|---|---|---|
-| FMT-001 | Paper size 8.5 x 11" | 32(a)(4) | REJECT |
-| FMT-002 | Left margin >= 1.5" | 32(a)(4) | REJECT |
-| FMT-003 | Right margin >= 1" | 32(a)(4) | CORRECTION |
-| FMT-004 | Top margin >= 1" | 32(a)(4) | CORRECTION |
-| FMT-005 | Bottom margin >= 1" (excluding page numbers) | 32(a)(4) | CORRECTION |
-| FMT-006 | Font size >= 12pt | 32(a)(5) | REJECT | ⚠ High false-positive rate — flags small fonts in page numbers, headers, superscripts |
-| FMT-007 | Max 16 chars/inch | 32(a)(5) | CORRECTION |
-| FMT-008 | Plain roman style | 32(a)(6) | NOTE |
-| FMT-009 | Double-spaced body text | 32(a)(5) | CORRECTION |
-| FMT-010 | Footnotes double-spaced, same typeface | 32(a)(5) | NOTE |
-| FMT-011 | Pages numbered at bottom | 32(a)(4) | CORRECTION |
-| FMT-012 | Numbering starts with "1" on cover | 32(a)(4) | NOTE |
-| PG-001 | Principal brief <= 38 pages (excl. addendum) | 32(a)(8) | REJECT |
-| PG-002 | Reply brief <= 12 pages | 32(a)(8) | REJECT |
-| PG-003 | Amicus brief <= 19 pages | 29(a)(5) | REJECT |
-| PG-004 | Amicus rehearing <= 2,600 words | 29(b)(4) | REJECT |
-| COV-001 | Cover color matches brief type | 32(a)(2) | CORRECTION |
-| COV-002 | "ORAL ARGUMENT REQUESTED" on cover | 28(h)/34(a)(1)(C) | NOTE |
-| CNT-004 | Paragraphs numbered (arabic numerals) | 32(a)(7) | CORRECTION |
-| SEC-013 | Certificate of Compliance present | 32(d) | CORRECTION |
-| REC-001 | Record citations present (R#:#) format | 30(a) | NOTE |
+| FMT-001 | Paper size 8.5 x 11" | 6.903(1)(d) | REJECT |
+| FMT-002 | Left margin >= 1" | 6.903(1)(d) | REJECT |
+| FMT-003 | Right margin >= 1" | 6.903(1)(d) | CORRECTION |
+| FMT-004 | Top margin >= 1" | 6.903(1)(d) | CORRECTION |
+| FMT-005 | Bottom margin >= 1" (excluding page numbers) | 6.903(1)(d) | CORRECTION |
+| FMT-006 | Font size >= 14pt (proportional) or <= 10.5 cpi (mono) | 6.903(1)(e) | REJECT | ⚠ High false-positive rate — flags small fonts in page numbers, headers, superscripts |
+| FMT-008 | Plain roman style | 6.903(1)(f) | NOTE |
+| FMT-009 | Double-spaced body text | 6.903(1)(d) | CORRECTION |
+| FMT-010 | Footnotes same typeface as text | 6.903(1)(e) | NOTE |
+| FMT-011 | Pages numbered consecutively | 6.903(1)(d) | CORRECTION |
+| WC-001 | Principal brief <= 14,000 words | 6.903(1)(g)(1) | REJECT |
+| WC-002 | Reply brief <= 7,000 words | 6.903(1)(g)(1) | REJECT |
+| WC-003 | Amicus brief <= 7,000 words | 6.906(4) | REJECT |
+| SEC-013 | Certificate of Compliance present | 6.903(1)(i) | CORRECTION |
+| REC-001 | Record citations present (App. pp. ___) format | 6.904(2) | NOTE |
 
 ### Semantic Checks (Claude Evaluation)
 
@@ -246,10 +237,10 @@ These checks are evaluated by Claude during the skill workflow. For each check, 
 #### Applicability by Brief Type
 
 Before evaluating, filter checks by brief type:
-- **All types**: SEC-001 through SEC-004, CNT-001, CNT-002, CNT-003, PRV-001
-- **Appellant only**: SEC-005, SEC-006, SEC-007, SEC-008, SEC-010, SEC-011
+- **All types**: SEC-001 through SEC-004, SEC-013, SEC-019, CNT-001, CNT-002, CNT-003
+- **Appellant only**: SEC-006, SEC-006A, SEC-016, SEC-007, SEC-008, SEC-010, SEC-017
 - **Appellant + Appellee + Amicus**: SEC-009
-- **Appellant + Appellee**: SEC-012
+- **Appellant + Appellee**: SEC-012, SEC-018
 - **Appellant + Appellee + Cross-appeal**: REC-002, REC-003
 - **Amicus only**: SEC-014, SEC-015
 
@@ -260,115 +251,145 @@ If a check is not applicable to the brief type, mark it as `"passed": true, "app
 For each applicable check, evaluate as follows. Cross-reference the rule text in the Bundled Rules section below for exact rule language.
 
 ##### SEC-001 — Table of Contents Present
-**Rule**: 28(b)(1) — "a table of contents, with paragraph references"
+**Rule**: 6.903(2)(1) — requires a table of contents with page references
 **Look for**: A section labeled "Table of Contents", "Contents", or similar near the beginning of the brief (typically after the cover page). The TOC should list the major sections/headings of the brief.
 **Pass if**: A TOC section exists with section headings listed.
 **Fail if**: No TOC is present at all.
 **Severity**: REJECT
 
-##### SEC-002 — TOC Uses Paragraph References
-**Rule**: 28(b)(1) — requires "paragraph references"
-**Look for**: Whether the TOC references use paragraph numbers (¶, ¶¶, [1], [2], etc.) as opposed to only page numbers. Under ND practice, briefs use paragraph numbering per Rule 32(a)(7), and the TOC should reference those paragraph numbers.
-**Pass if**: TOC entries include paragraph references (¶ symbols or bracketed numbers pointing to paragraph numbers in the body).
-**Fail if**: TOC entries use only page numbers with no paragraph references.
-**Note**: Many briefs use page numbers in the TOC — this is a common deficiency. If the TOC uses page numbers exclusively, fail this check.
+##### SEC-002 — TOC Uses Page References
+**Rule**: 6.903(2)(1) — requires page references
+**Look for**: Whether the TOC references use page numbers. Iowa uses page references (not paragraph references). Check that the TOC entries include page numbers.
+**Pass if**: TOC entries include page references.
+**Fail if**: TOC entries have no page references.
 **Severity**: CORRECTION
 
 ##### SEC-003 — Table of Authorities Present
-**Rule**: 28(b)(2) — "a table of authorities—cases (alphabetically arranged), statutes, and other authorities—with references to the paragraphs in the brief"
+**Rule**: 6.903(2)(2) — requires a table of authorities with page references
 **Look for**: A section listing cases, statutes, and other authorities cited in the brief, typically after the TOC.
 **Pass if**: A TOA section exists listing authorities.
 **Fail if**: No TOA section is found.
 **Severity**: REJECT
 
-##### SEC-004 — TOA: Cases Alphabetical, Paragraph Refs
-**Rule**: 28(b)(2)
-**Look for**: (1) Cases listed in alphabetical order. (2) References use paragraph numbers rather than only page numbers.
-**Pass if**: Cases appear alphabetical and references include paragraph numbers.
-**Fail if**: Cases are not alphabetical, or references use only page numbers.
-**Severity**: CORRECTION
-
-##### SEC-005 — Jurisdictional Statement
-**Rule**: 28(b)(3) — applies only to original jurisdiction applications
-**Look for**: A statement of jurisdiction or basis for appellate jurisdiction. However, Rule 28(b)(3) specifically applies to "original proceedings" (original jurisdiction applications), not standard appeals.
-**Pass if**: This is a standard appeal (not an original jurisdiction proceeding) — passes automatically. OR, if an original proceeding, a jurisdictional statement is present.
-**Fail if**: This is an original jurisdiction proceeding and no jurisdictional statement is provided.
-**Note**: Most appellate briefs are standard appeals, so this typically passes automatically. Only fail if the cover page or text clearly indicates an original proceeding (e.g., "Application for Supervisory Writ") AND no jurisdictional statement is found.
+##### SEC-004 — TOA: Cases Alphabetical, Page Refs
+**Rule**: 6.903(2)(2)
+**Look for**: (1) Cases listed in alphabetical order. (2) References use page numbers.
+**Pass if**: Cases appear alphabetical and references include page numbers.
+**Fail if**: Cases are not alphabetical, or references lack page numbers.
 **Severity**: CORRECTION
 
 ##### SEC-006 — Statement of Issues
-**Rule**: 28(b)(4) — "a statement of the issues presented for review"
+**Rule**: 6.903(2)(3) — requires a statement of the issues presented for review
 **Look for**: A section titled "Statement of Issues", "Issues Presented", "Issues", or similar, listing the legal questions the court is asked to decide.
 **Pass if**: An issues section exists with identifiable legal questions.
 **Fail if**: No issues section is found.
 **Severity**: REJECT
 
+##### SEC-006A — Issues Include Preservation & Authority Citations
+**Rule**: 6.903(2)(3) — each issue must include a preservation citation and the most apposite authority
+**Look for**: For each issue, two things: (1) a citation to where the issue was preserved in the district court record, and (2) a citation to the most apposite authority.
+**Pass if**: Each issue includes a citation to where it was preserved AND the most apposite authority.
+**Fail if**: Issues lack preservation citations or authority citations.
+**Note**: This is a distinctive Iowa requirement. Under Iowa R. App. P. 6.903(2)(3), the statement of each issue must include both a preservation citation and the most apposite case authority.
+**Severity**: CORRECTION
+
+##### SEC-016 — Routing Statement
+**Rule**: 6.903(2)(4) — requires a routing statement
+**Look for**: A section labeled "Routing Statement" or similar that indicates whether the case should be retained by the Supreme Court or transferred to the Court of Appeals, referencing the criteria in Iowa R. App. P. 6.1101(2) and (3).
+**Pass if**: A routing statement is present.
+**Fail if**: No routing statement found. This is an Iowa-specific requirement.
+**Note**: The routing statement should reference the criteria for retention by the Supreme Court (6.1101(2): substantial constitutional questions, enunciating or changing legal principles, broad public importance) or transfer to the Court of Appeals (6.1101(3): sufficiency of evidence, application of existing law, sentencing, procedural matters).
+**Severity**: REJECT
+
 ##### SEC-007 — Statement of the Case
-**Rule**: 28(b)(5) — "a statement of the case briefly indicating the nature of the case, the course of the proceedings, and the disposition below"
+**Rule**: 6.903(2)(5) — requires a statement of the case (nature, proceedings, disposition)
 **Look for**: A section describing the procedural history — the nature of the case, what happened in the lower court, and the disposition being appealed.
 **Pass if**: A procedural history / statement of the case section exists.
 **Fail if**: No such section is found. Note: sometimes combined with Statement of Facts — if procedural history is addressed there, it passes.
 **Severity**: CORRECTION
 
 ##### SEC-008 — Statement of Facts with Record References
-**Rule**: 28(b)(6) — "a statement of the facts relevant to the issues...with appropriate references to the record (see Rule 28(f))"
-**Look for**: (1) A Statement of Facts section. (2) References to the record — look for citations like "App. 15", "Doc. 23", "(R. 45)", "Tr. 112", appendix references, or similar record citations.
+**Rule**: 6.903(2)(6) — requires a statement of facts with record references (Rule 6.904)
+**Look for**: (1) A Statement of Facts section. (2) References to the record — look for citations like (App. pp. ___), (Tr. p. ___), (Conf. App. pp. ___), or similar record citations.
 **Pass if**: Facts section exists AND contains record references.
 **Fail if**: No facts section, OR facts section lacks record references.
 **Severity**: REJECT
 
 ##### SEC-009 — Argument Section Present
-**Rule**: 28(b)(7) — "the argument"
+**Rule**: 6.903(2)(7)
 **Look for**: A substantive section labeled "Argument" containing legal analysis with citations to authority.
 **Pass if**: An argument section with legal analysis is present.
 **Fail if**: No argument section found.
 **Severity**: REJECT
 
-##### SEC-010 — Standard of Review Stated
-**Rule**: 28(b)(7)(B)(i) — "a concise statement of the applicable standard of review"
-**Look for**: Either a standalone "Standard of Review" section or standard-of-review language within the argument (e.g., "de novo", "clearly erroneous", "abuse of discretion", "reasonable doubt").
-**Pass if**: Standard of review is stated (either as a section or within the argument for each issue).
-**Fail if**: No standard of review language found anywhere in the argument.
+##### SEC-010 — Standard/Scope of Review Stated
+**Rule**: 6.903(2)(7) — requires a scope or standard of review for each issue
+**Look for**: Either a standalone "Standard of Review" or "Scope of Review" section, or standard-of-review language within each argument division (e.g., "de novo", "substantial evidence", "abuse of discretion", "for correction of errors at law").
+**Pass if**: Standard or scope of review is stated for each argument division.
+**Fail if**: No standard of review language found.
 **Severity**: CORRECTION
 
-##### SEC-011 — Preservation Citations
-**Rule**: 28(b)(7)(B)(ii) — "citation to the record showing that the issue was preserved for review; or a statement of grounds for seeking review of an issue not preserved"
-**Look for**: In the argument section, citations showing where each issue was raised below (e.g., "preserved at Tr. 45", "raised in motion at Doc. 12"), or a statement that the issue is raised for the first time on appeal with grounds for review (e.g., obvious error).
-**Pass if**: The argument includes preservation citations or addresses preservation.
-**Fail if**: No preservation language is found. However, be lenient — if the argument cites to the record in the course of arguing each issue, that may suffice.
-**Severity**: NOTE
+##### SEC-017 — Preservation of Error
+**Rule**: 6.903(2)(7) — requires a statement of how each issue was preserved
+**Look for**: In the argument section, statements of how each issue was raised and decided in district court, with record references.
+**Pass if**: Preservation of error is addressed for each issue.
+**Fail if**: No preservation language found.
+**Note**: This is a key Iowa requirement — error preservation must appear in the argument for each issue. Under Iowa R. App. P. 6.903(2)(7), the argument must contain "a statement of how the issue was preserved for appellate review, with references to the places in the record where the issue was raised and decided."
+**Severity**: CORRECTION
 
 ##### SEC-012 — Conclusion with Precise Relief
-**Rule**: 28(b)(7)(D) — "a short conclusion stating the precise relief sought"
+**Rule**: 6.903(2)(8) — requires a conclusion stating the precise relief sought
 **Look for**: A "Conclusion" section that states what the party wants the court to do (e.g., "reverse and remand", "affirm the judgment", "reverse with instructions to dismiss").
 **Pass if**: Conclusion exists and states specific relief sought.
 **Fail if**: No conclusion, or conclusion is vague (e.g., "For the above reasons, the Court should rule in Appellant's favor" without specifying the relief).
 **Severity**: CORRECTION
 
+##### SEC-018 — Request for Oral Argument
+**Rule**: 6.903(2)(9) — requires a request for oral argument or waiver
+**Look for**: A statement in the brief that either requests oral argument or states that oral argument is not requested (waived).
+**Pass if**: Brief includes a request for oral argument or states argument is waived/not requested.
+**Fail if**: Neither a request nor a waiver is present.
+**Note**: Under Iowa R. App. P. 6.907(1), if no request for oral argument is made, the case may be submitted without argument. Including this in the brief is expected per Rule 6.903(2)(9).
+**Severity**: NOTE
+
+##### SEC-013 — Certificate of Compliance
+**Rule**: 6.903(1)(i) — requires Form 7 certificate
+**Look for**: A Certificate of Compliance section that certifies the typeface (font name, point size) and word count or line count, conforming to Form 7 (Iowa R. App. P. 6.1401).
+**Pass if**: A certificate of compliance section is present.
+**Fail if**: Missing.
+**Severity**: CORRECTION
+
+##### SEC-019 — Certificate of Filing/Service
+**Rule**: 6.903(2)(11) — requires a certificate of filing and service
+**Look for**: A certificate stating that the brief has been filed and served, typically noting electronic filing through EDMS.
+**Pass if**: A certificate of filing/service is present.
+**Fail if**: Missing.
+**Severity**: CORRECTION
+
 ##### SEC-014 — Amicus: Identity/Interest Statement
-**Rule**: 29(a)(4)(C) — "a concise statement of the identity of the amicus curiae, and its interest in the case"
+**Rule**: 6.906(3) — requires identity and interest statement
 **Look for**: A section identifying who the amicus is and why they have an interest in the case.
 **Pass if**: Identity and interest statement is present.
 **Fail if**: Missing.
 **Severity**: REJECT
 
 ##### SEC-015 — Amicus: Disclosure Statement
-**Rule**: 29(a)(4)(D) — disclosure of authorship and funding
+**Rule**: 6.906(3) — disclosure of authorship and funding
 **Look for**: A statement disclosing whether a party or party's counsel authored the brief and whether anyone other than the amicus or its counsel made a monetary contribution to the preparation or submission of the brief.
 **Pass if**: Disclosure statement present.
 **Fail if**: Missing.
 **Severity**: CORRECTION
 
 ##### CNT-001 — Party References Use Actual Names
-**Rule**: 28(e) — "counsel should use the parties' actual names or the designations used in the lower court"
-**Look for**: Whether the brief predominantly uses actual party names (e.g., "Smith", "Kawasaki", "the City") versus procedural labels ("Appellant", "Appellee").
+**Rule**: 6.904(1) — counsel should use parties' actual names
+**Look for**: Whether the brief predominantly uses actual party names (e.g., "Smith", "Johnson", "the City") versus procedural labels ("Appellant", "Appellee").
 **Pass if**: The brief primarily uses actual names or lower-court designations. Occasional use of "Appellant"/"Appellee" for clarity is acceptable.
 **Fail if**: The brief predominantly uses "Appellant"/"Appellee" instead of names.
-**Note**: Rule 28(e) uses "should" — this is a preference, not an absolute command. Be somewhat lenient.
+**Note**: Rule 6.904(1) uses "should" — this is a preference, not an absolute command. Be somewhat lenient.
 **Severity**: CORRECTION
 
 ##### CNT-002 — Brief Is Concise, No Irrelevant Matter
-**Rule**: 28(l) — "must be concise...free from burdensome, irrelevant or immaterial matters"
+**Rule**: 6.903 — brief must be concise
 **Look for**: Whether the brief contains obviously irrelevant, scandalous, or excessively repetitive material.
 **Pass if**: The brief appears focused and relevant. Most briefs pass this check.
 **Fail if**: The brief contains clearly irrelevant, scandalous, or grossly repetitive material.
@@ -376,33 +397,25 @@ For each applicable check, evaluate as follows. Cross-reference the rule text in
 **Severity**: NOTE
 
 ##### CNT-003 — Statutes/Rules in Brief or Addendum
-**Rule**: 28(g) — "the relevant parts must be set out in the brief or in an addendum"
+**Rule**: 6.904(3) — relevant statutes/rules must be set out in the brief or addendum
 **Look for**: If the brief discusses statutes, rules, or regulations, whether the relevant text is included in the brief body or in an addendum.
 **Pass if**: Relevant statutes/rules are quoted or an addendum contains them, OR the brief does not involve statutory interpretation requiring the text.
 **Fail if**: The brief argues about specific statutory/regulatory language that is neither quoted in the brief nor included in an addendum.
 **Severity**: NOTE
 
-##### PRV-001 — Privacy: Minor Names Redacted
-**Rule**: N.D.R.Ct. 3.4(b)(1)(C) — "the name of an individual known to be a minor" must be redacted to "the minor's initials"
-**Look for**: Whether the brief uses the full first or last name of any individual known to be a minor. Minors should be identified only by initials (e.g., "H.R.", "A.R.") throughout the brief. Check for inconsistent usage where initials are used in some places but full names appear elsewhere.
-**Pass if**: All minors are consistently referred to by initials only. Using initials with periods (e.g., "H.R.") or without (e.g., "HR") is acceptable.
-**Fail if**: A minor's full first name, last name, or both appear anywhere in the brief text (excluding the cover page party caption, where the parent's name naturally appears). Common indicators: the brief uses initials for a minor in most places but slips into using the actual name in others.
-**Note**: Rule 3.4(b)(3)(E) exempts minors who are parties in certain case types (traffic, name change, conservatorship, protection orders). In a standard custody/family law appeal, the children are not parties and the exemption does not apply — initials are required. Be alert to first names appearing in quoted testimony or narrative that inadvertently reveal a minor's identity when initials are used elsewhere.
-**Severity**: CORRECTION
-
 ##### REC-002 — Record Citation Format
-**Rule**: 30(b)(1) — record citations must use the format (R{index}:{page}), e.g. (R156:12)
-**Look for**: Whether record references consistently use the (R#:#) format. Note any citations that use other formats (e.g., "App. 15", "Doc. 23", "Tr. 45") instead.
-**Pass if**: Record citations consistently use the (R#:#) format, or the brief uses a close variant (e.g., [R156:12]).
-**Fail if**: The brief uses non-compliant formats for most record citations (e.g., "App." references, "Doc." references, or bare page numbers).
-**Note**: If the brief uses a mix of formats, note which are non-compliant.
+**Rule**: 6.904(2) — record citations should use (App. pp. ___) or (Tr. p. ___) format
+**Look for**: Whether record references consistently use the appendix/transcript citation format prescribed by Iowa R. App. P. 6.904(2).
+**Pass if**: Record citations consistently use the (App. pp. ___) or (Tr. p. ___) format, or a close variant.
+**Fail if**: The brief uses non-standard formats for most record citations (e.g., bare page numbers, "Doc." references, or ND-style (R#:#) format).
+**Note**: If the brief uses a mix of formats, note which are non-compliant. Iowa uses appendix-based record citation, not index-based.
 **Severity**: CORRECTION
 
 ##### REC-003 — Record Citations Identify Items
-**Rule**: 30(a) — record references must include "information identifying the item, for example 'Statement of John Doe'"
+**Rule**: 6.904(2) — record references should include context identifying the item
 **Look for**: Whether record citations provide enough context to identify what is being cited, either in the surrounding text or in the citation itself.
-**Pass if**: Record citations are generally accompanied by identifying context (e.g., "Dr. Smith's deposition (R45:12)", "the district court's order (R102:1)").
-**Fail if**: Many citations are bare references like (R12:5) with no surrounding context about what the item is.
+**Pass if**: Record citations are generally accompanied by identifying context (e.g., "the district court's order (App. pp. 45-46)", "Dr. Smith's testimony (Tr. pp. 112-13)").
+**Fail if**: Many citations are bare references with no surrounding context about what the item is.
 **Note**: Be somewhat lenient — if the context is clear from the surrounding sentence, the citation need not repeat the identification.
 **Severity**: NOTE
 
@@ -415,302 +428,197 @@ For each applicable check, evaluate as follows. Cross-reference the rule text in
 
 ## Bundled Rules
 
-### N.D.R.App.P. 28 — Briefs
+### Iowa R. App. P. 6.903 — Briefs
 
-**(a) Form of Briefs.** All briefs must comply with Rule 25 and Rule 32.
+**Note:** This is a summary of the key provisions. The authoritative text is available at
+https://www.legis.iowa.gov/law/courtRules/courtRulesListings (Chapter 6, Division IX).
 
-**(b) Appellant's Brief.** The appellant's brief must contain, under appropriate headings and in the order indicated:
+#### 6.903(1) — Form of Briefs
 
-> (1) a table of contents, with paragraph references;
+**(a) Filing.** Briefs must be filed electronically through EDMS in accordance with Iowa R. Elec. P. 16.302.
 
-> (2) a table of authorities—cases (alphabetically arranged), statutes, and other authorities—with references to the paragraphs in the brief where they are cited;
+**(b) Cover Page.** The front cover of a brief must contain:
+- The name of the court (Supreme Court of Iowa or Court of Appeals of Iowa)
+- The case number
+- The title of the case
+- The nature of the proceeding and the name of the court or agency below
+- The title of the brief, identifying the party for whom the brief is filed
+- The name, address, telephone number, email address, and attorney number of counsel
 
-> (3) in an application for the exercise of original jurisdiction, a concise statement of the grounds on which the jurisdiction of the supreme court is invoked, including citations of authorities;
+**(c) Binding and Reproduction.** If a paper copy is required, the brief must be bound at the left in a secure manner. The text must yield a clear black image on white paper. Only one side of the paper may be used.
 
-> (4) a statement of the issues presented for review;
+**(d) Paper Size, Margins, and Line Spacing.** The brief must be on 8½ by 11 inch paper. Margins must be at least one inch on all four sides. The text must be double-spaced, except that headings, quotations, and footnotes may be single-spaced. Pages must be numbered consecutively.
 
-> (5) a statement of the case briefly indicating the nature of the case, the course of the proceedings, and the disposition below;
+**(e) Typeface.** A brief must use either a proportionally spaced or monospaced typeface:
+- **Proportionally spaced typeface**: Must be a serif typeface of 14 points or more (e.g., Times New Roman, Century Schoolbook, Georgia, Bookman Old Style, Garamond, Book Antiqua).
+- **Monospaced typeface**: Must be no more than 10½ characters per inch (e.g., Courier New).
 
-> (6) a statement of the facts relevant to the issues submitted for review, which identifies facts in dispute and includes appropriate references to the record (see Rule 28(f));
+**(f) Type Styles.** A brief must be set in a plain, roman style, although italics or boldface may be used for emphasis. Case names must be italicized or underlined.
 
-> (7) the argument, which must contain:
+**(g) Type-Volume Limitation.**
+- **(1) Proportionally spaced typeface**: A principal brief (appellant or appellee) must not exceed **14,000 words**. A reply brief must not exceed **7,000 words**. An amicus curiae brief must not exceed **7,000 words**.
+- **(2) Monospaced typeface**: A principal brief must not exceed **1,300 lines of text**. A reply brief must not exceed **650 lines of text**. An amicus curiae brief must not exceed **650 lines**.
+- The word or line count excludes the table of contents, table of authorities, signature block, certificate of compliance, certificate of filing, and any attached court order.
 
-> > (A) appellant's contentions and the reasons for them, with citations to the authorities and parts of the record on which the appellant relies; and
+**(h) Certificate of Cost.** When a brief incurs printing costs, a certificate of cost must be attached.
 
-> > (B) for each issue:
+**(i) Certificate of Compliance.**
+- **(1)** A brief prepared in a proportionally spaced typeface must include a certificate stating the typeface name, point size, and word count.
+- **(2)** A brief prepared in a monospaced typeface must include a certificate stating the typeface name, point size, and number of lines of text.
+- **(3)** The word or line count must be calculated by the word-processing software used to prepare the brief.
+- **(4)** The certificate must conform to Form 7 (Iowa R. App. P. 6.1401).
 
-> > > (i) a concise statement of the applicable standard of review (which may appear in the discussion of the issue or under a separate heading placed before the discussion of the issues);
+#### 6.903(2) — Appellant's Brief
 
-> > > (ii) citation to the record showing that the issue was preserved for review; or a statement of grounds for seeking review of an issue not preserved; and
+The appellant's brief must contain, under appropriate headings and in the order indicated:
 
-> > (C) if the appeal is from a judgment ordered under N.D.R.Civ.P. 54(b), whether the certification was appropriate; and
+> (1) **Table of contents** — with page references.
 
-> > (D) a short conclusion stating the precise relief sought.
+> (2) **Table of authorities** — cases (alphabetically arranged), statutes, and other authorities, with page references.
 
-**(c) Appellee's Brief.** The appellee's brief must conform to the requirements of subdivision (b), except that none of the following need appear unless the appellee is dissatisfied with the appellant's statement:
+> (3) **Statement of the issues presented for review** — each issue must include a citation to where the issue was preserved in the district court record and a citation to the most apposite authority.
 
-> (1) the jurisdictional statement;
+> (4) **Routing statement** — a concise statement regarding whether the case should be retained by the supreme court or transferred to the court of appeals, referencing the criteria in Iowa R. App. P. 6.1101(2) and (3).
 
-> (2) the statement of the issues;
+> (5) **Statement of the case** — the nature of the case, the course of proceedings, and the disposition in the court or agency below.
 
-> (3) the statement of the case;
+> (6) **Statement of the facts** — relevant to the issues presented for review, with appropriate references to the record (Iowa R. App. P. 6.904).
 
-> (4) the statement of the facts; and
+> (7) **Argument** — divided under a separate heading for each issue. Each issue must contain:
+>
+> > (A) A statement of the scope or standard of review, with supporting authorities.
+> >
+> > (B) A statement of how the issue was preserved for appellate review, with references to the places in the record where the issue was raised and decided.
+> >
+> > (C) The party's contentions and the reasons for them, with citations to authorities and the record.
 
-> (5) the statement of the standard of review.
+> (8) **Conclusion** — a short conclusion stating the precise relief sought.
 
-**(d) Reply Brief.** The appellant may file a single brief in reply to the appellee's brief. Unless the court permits, no further briefs may be filed. A reply brief must contain a table of contents, with paragraph references, and a table of authorities—cases (alphabetically arranged), statutes, and other authorities—with references to the paragraphs in the reply brief where they are cited.
+> (9) **Request for oral argument** — or a statement that oral argument is not requested.
 
-**(e) References to Parties.** Except as required under Rule 14, counsel should use the parties' actual names or the designations used in the lower court or agency proceeding, or such descriptive terms as "the employee," "the injured person," "the taxpayer," "the purchaser."
+> (10) **Certificate of compliance** — with typeface requirements and type-volume limitation (Form 7).
 
-**(f) References to the Record.** References to the record must be made as provided by Rule 30.
+> (11) **Certificate of filing** — stating that the brief has been filed and served electronically.
 
-**(g) Reproduction of Statutes, Rules, Regulations, and Other Sources.** If the court's determination of the issues presented requires the study of statutes, rules, regulations, etc., the relevant parts must be set out in the brief or in an addendum at the end of the brief.
+> (12) **Attached judgment** — a file-stamped copy of the written judgment(s), order(s), or decision(s) being appealed.
 
-**(h) Oral Arguments Requested.** Any party who desires oral argument must place the words "ORAL ARGUMENT REQUESTED" conspicuously on the cover page of the appellant's, appellee's or cross-appellee's reply brief.
+#### 6.903(3) — Appellee's Brief
 
-**(i) Briefs in a Case Involving a Cross-Appeal.**
+The appellee's brief must conform to subdivision (2), except that the following need not appear unless the appellee is dissatisfied with the appellant's statement:
+- Statement of the issues
+- Routing statement
+- Statement of the case
+- Statement of the facts
 
-> (1) An appellee and cross-appellant must file a single brief at the time the appellee's brief is due. This brief must contain the issues and argument involved in the cross-appeal as well as the answer to the appellant's brief.
+#### 6.903(4) — Reply Brief
 
-> (2) The appellant's answer to the cross-appeal must be included in the reply brief, but without duplication of statements, arguments, or authorities contained in the appellant's principal brief. To avoid duplication, references may be made to the appropriate portions of the appellant's principal brief.
+A reply brief is limited to a response to new matter raised in the appellee's brief. It must contain a table of contents with page references and a table of authorities with page references.
 
-> (3) The cross-appellant may file a reply brief confined strictly to the arguments raised in the cross-appeal. This brief is due within 14 days after service of the appellant's reply brief; however, if there is less than 14 days before oral argument, the reply brief must be filed at least 5 days before argument.
+### Iowa R. App. P. 6.904 — References in Briefs
 
-**(j) Briefs In a Case Involving Multiple Parties.** Any number of parties may join in a single brief or adopt by reference any part of another's brief. Parties may similarly join in reply briefs.
+#### 6.904(1) — References to Parties.
+Counsel should refer to the parties by their names or designations used in the district court or agency, not by procedural labels such as "Appellant" or "Appellee."
 
-**(k) Citation of Supplemental Authorities.** If pertinent and significant authorities come to a party's attention after the party's brief has been filed—or after oral argument but before decision—a party may promptly advise the court by letter, with a copy to all other parties, setting forth the citations. The letter must state without argument the reasons for the supplemental citations, referring either to the page of the brief or to a point argued orally. Any response must be made promptly and must be similarly limited.
+#### 6.904(2) — References to the Record.
+References to the record must cite the specific volume and page of the appendix where the material appears. The preferred citation format is:
+- **(App. pp. ___)** for references to the appendix
+- **(Tr. p. ___)** for references to the trial transcript
+- **(Conf. App. pp. ___)** for references to the confidential appendix
 
-**(l) Requirements.** All briefs under this rule must be concise, presented with accuracy, logically arranged with proper headings, and free from burdensome, irrelevant or immaterial matters.
+#### 6.904(3) — Reproduction of Statutes, Rules, and Regulations.
+If the court's determination requires the study of statutes, rules, regulations, or similar materials, the relevant parts must be set out in the brief or in an addendum.
 
-### N.D.R.App.P. 29 — Brief of an Amicus Curiae
+#### 6.904(4) — Transcripts of Oral Rulings.
+Transcripts of oral rulings may not be attached to the brief. Parties must cite to the relevant transcript in their brief using appropriate record references.
 
-**(a) During Initial Consideration of a Case on the Merits.**
+### Iowa R. App. P. 6.906 — Brief of an Amicus Curiae
 
-> (1) Applicability. This Rule 29(a) governs amicus filings during a court's initial consideration of a case on the merits.
+#### 6.906(1) — When Permitted.
+An amicus curiae may file a brief only by leave of court or at the court's request.
 
-> (2) When Permitted. An amicus curiae brief may be filed only with leave of court or at the court's request. An amicus brief must be limited to issues raised on appeal by the parties.
+#### 6.906(2) — Motion for Leave.
+A motion for leave to file an amicus brief must be accompanied by the proposed brief. The motion must state:
+- The movant's interest in the case
+- The reasons why an amicus brief is desirable and relevant to the disposition of the case
 
-> (3) Motion for Leave to File. The motion may be accompanied by the proposed brief. The motion must state:
+#### 6.906(3) — Contents and Form.
+An amicus brief must comply with Iowa R. App. P. 6.903(1) (form of briefs). The cover must identify the party supported, if any, and whether the brief supports affirmance or reversal. An amicus brief must include:
 
-> > (A) the moving party's interest; and
+1. A **table of contents** with page references.
+2. A **table of authorities** with page references.
+3. A concise **statement of the identity** of the amicus curiae and its **interest in the case**.
+4. A **disclosure statement** indicating whether:
+   - A party's counsel authored the brief in whole or in part;
+   - A party or party's counsel contributed money intended to fund preparing or submitting the brief;
+   - Any other person contributed money intended to fund preparing or submitting the brief (and if so, identifying each such person).
+5. An **argument**, which may be preceded by a summary.
 
-> > (B) the reasons why an amicus brief is desirable and why the matters asserted are relevant to the disposition of the case.
+#### 6.906(4) — Length.
+An amicus brief must not exceed **7,000 words** (proportionally spaced) or **650 lines** (monospaced), which is one-half the maximum length authorized for a party's principal brief.
 
-> (4) Contents and Form. An amicus brief must comply with Rule 25 and Rule 32. In addition to the requirements of Rule 25 and Rule 32, the cover must identify the party or parties supported, if any, and indicate whether the brief supports affirmance or reversal. An amicus brief need not comply with Rule 28, but must include the following:
+#### 6.906(5) — Time for Filing.
+An amicus brief must be filed within the time allowed for filing the principal brief of the party being supported. An amicus that does not support either party must file within the time for the appellant's principal brief.
 
-> > (A) a table of contents, with paragraph references;
+#### 6.906(6) — Reply Brief.
+An amicus curiae may not file a reply brief except by leave of court.
 
-> > (B) a table of authorities—cases (alphabetically arranged), statutes and other authorities—with references to the paragraphs in the brief where they are cited;
+#### 6.906(7) — Oral Argument.
+An amicus curiae may participate in oral argument only with the court's permission.
 
-> > (C) a concise statement of the identity of the amicus curiae, and its interest in the case;
+### Iowa R. App. P. 6.907 — Oral Argument
 
-> > (D) a statement that indicates whether:
+#### 6.907(1) — Request for Oral Argument.
+A party desiring oral argument must include a request in the party's brief in accordance with Iowa R. App. P. 6.903(2)(9) (appellant) or 6.903(3) (appellee).
 
-> > > (i) a party's counsel authored the brief in whole or in part;
+#### 6.907(2) — Submission Without Argument.
+A case will be submitted without oral argument unless a party requests argument in the brief. The court may, in its discretion, schedule or decline oral argument regardless of whether it has been requested.
 
-> > > (ii) a party or a party's counsel contributed money that was intended to fund preparing or submitting the brief; and
+#### 6.907(3) — Time Allowed.
+Each side is ordinarily allowed 20 minutes for oral argument. The court may extend or limit the time for argument.
 
-> > > (iii) a person—other than the amicus curiae, its members, or its counsel—contributed money that was intended to fund preparing or submitting the brief and, if so, identifies each such person; and
+#### 6.907(4) — Cross-Appeals and Separate Appeals.
+A cross-appeal or separate appeal will be argued at the same time as the initial appeal unless the court directs otherwise.
 
-> > > (iv) an argument, which may be preceded by a summary and which need not include a statement of the applicable standard of review.
+### Iowa R. App. P. 6.1101 — Routing of Cases
 
-> (5) Length. Except by the court's permission, an amicus brief may be no more than one-half the maximum length authorized by these rules for a party's principal brief (see Rule 32(a)(8)). If the court grants a party permission to file a longer brief, that extension does not affect the length of an amicus brief.
+#### 6.1101(1) — General.
+All cases are filed with the supreme court. Cases may be retained by the supreme court or transferred to the court of appeals. Cases not retained by the supreme court will be transferred to the court of appeals.
 
-> (6) Time for Filing. An amicus curiae must file its brief within the time allowed for filing the principal brief of the party being supported. An amicus curiae that does not support either party must file its brief within the time allowed for filing the appellant's principal brief. The court may grant leave for later filing, specifying the time within which an opposing party may answer.
+#### 6.1101(2) — Cases Retained by the Supreme Court.
+The supreme court ordinarily retains cases involving:
+- Substantial constitutional questions regarding the validity or construction of a statute, ordinance, or court rule.
+- Substantial issues of enunciating or changing legal principles.
+- Fundamental and urgent issues of broad public importance requiring prompt resolution by the supreme court.
 
-> (7) Reply Brief. Except by the court's permission, an amicus curiae may not file a reply brief.
+#### 6.1101(3) — Cases Transferred to the Court of Appeals.
+The court of appeals ordinarily receives cases involving:
+- Questions of sufficiency of the evidence (including review of findings of fact in equity cases).
+- Questions involving existing legal principles.
+- Sentencing in criminal cases.
+- Procedural matters.
+- Cases involving application of existing law to the facts.
 
-> (8) Oral Argument. An amicus curiae may participate in oral argument only with the court's permission.
+#### 6.1101(4) — Transfer Back.
+The court of appeals may, on its own motion or on the motion of a party, transfer a case to the supreme court.
 
-**(b) During Consideration of Whether to Grant Rehearing.**
+### Iowa Confidential Filings — Iowa R. Elec. P. 16.601 & Iowa Code Ch. 232
 
-> (1) Applicability. This Rule 29(b) governs amicus filings during a court's consideration of whether to grant rehearing.
+Iowa court rules and statutes require that certain personal information be redacted or filed confidentially.
 
-> (2) When Permitted. An amicus curiae may file a brief only by leave of court.
+#### Information That Must Be Redacted or Protected:
+- **Social Security numbers** — must be redacted to show only the last four digits.
+- **Financial account numbers** — must be redacted to show only the last four digits.
+- **Birth dates** — in certain cases, should show only the year.
+- **Names of minors** — in juvenile cases and certain family law matters, minors should be identified by initials only, per Iowa Code chapter 232 and related provisions.
 
-> (3) Motion for Leave to File. Rule 29(a)(3) applies to a motion for leave.
+#### Confidential Appendix:
+Iowa R. App. P. 6.905 provides for a **confidential appendix** that is filed separately from the main appendix and is not publicly accessible. Materials that are confidential under statute or court order must be placed in the confidential appendix and referenced as **(Conf. App. pp. ___)**.
 
-> (4) Contents, Form, and Length. Rule 29(a)(4) applies to the amicus brief. The brief must not exceed 2,600 words.
+#### Juvenile Proceedings:
+Iowa Code chapter 232 governs confidentiality of juvenile proceedings. Records in juvenile cases are generally confidential and not open to public inspection.
 
-> (5) Time for Filing. An amicus curiae supporting the petition for rehearing or supporting neither party must file its brief, accompanied by a motion for filing when necessary, no later than 7 days after the petition is filed. An amicus curiae opposing the petition must file its brief, accompanied by a motion for filing when necessary, no later than the date set by the court for the response.
+#### Sealed Records:
+The court may order that particular documents or portions of the record be sealed. Motions to seal must state the grounds for sealing.
 
-### N.D.R.App.P. 30 — References to the Record
-
-**(a) In General.** In any document submitted to the supreme court, references to evidence or other parts of the record must include a citation to a register of actions index number or to the location in the recording where such evidence or other material appears. The reference must include, either in the document text or the citation itself, information identifying the item, for example "Statement of John Doe."
-
-**(b) Form of Citation.**
-
-> **(1)** Reference to any material that is contained in an item in the record and that is listed under a register of actions index number, including transcripts, must be made by setting forth in parentheses the capital letter "R" followed by the index number of the item followed by a colon and the specific page within the item where the information referred to is located, for example (R156:12). If applicable, paragraph or line numbers must be included after the page number, for example (R156:12:¶3) or (R156:12:3). Where more than one district court record must be cited, on first reference to the matter include the entire district court case number (54-2020-CV-00012 R19:2), and on subsequent references include only the last four digits (0012 R19:2).
-
-> **(2)** References to a video or audio recording in the record must be made by identifying the recording and providing specific, time-coded locations of the relevant portions.
-
-### N.D.R.App.P. 32 — Form of Briefs and Other Documents
-
-**(a) Form of a Brief.**
-
-> **(1) Reproduction.**
-
-> > (A) A brief must be typewritten, printed, or reproduced by any process that yields a clear black image on white paper. Only one side of a paper may be used.
-
-> > (B) Photographs, illustrations, and tables may be reproduced by any method that results in a good copy of the original. If filed electronically, documents must be submitted in the same form as if submitted by mail, by third-party commercial carrier, i.e. color. Notice to the clerk of the supreme court must be given of anything other than black and white printed documents.
-
-> **(2) Cover.** The cover of the appellant's brief must be blue; the appellee's red; an intervenor's or amicus curiae's green; a cross-appellee's and any reply brief gray. Covers of petitions for rehearing must be the same color as the petitioning party's principal brief. If the brief is filed electronically, the supreme court will affix the correct color cover. The front cover of a brief must contain:
-
-> > (A) the number of the case;
-
-> > (B) the name of the court;
-
-> > (C) the title of the case (see Rule 3(d));
-
-> > (D) the nature of the proceeding (e.g., Appeal from Summary Judgment) and the name of the court, agency, or board below;
-
-> > (E) the title of the brief, identifying the party or parties for whom the brief is filed;
-
-> > (F) the name, bar identification number, office address, and telephone number of counsel representing the party for whom the brief is filed.
-
-> **(3) Binding.** The brief must be bound at the left in a secure manner that does not obscure the text and permits the brief to lie reasonably flat when open. If the brief is filed electronically, the supreme court will bind the brief.
-
-> **(4) Paper Size, Line Spacing, and Margins.** The brief must be on 8½ by 11 inch paper. Margins must be at least one and one-half inch at the left and at least one inch on all other sides. Pages must be numbered at the bottom, either centered or at the right side. Page numbering must begin on the cover page with the arabic number 1 and continue consecutively to the end of the document.
-
-> **(5) Typeface.** The typeface must be 12 point or larger with no more than 16 characters per inch. The text must be double-spaced, except headings and quotations may be single-spaced and indented. Footnotes must be double-spaced and must be in the same typeface as the text.
-
-> **(6) Type Styles.** A brief must be set in a plain, roman style, although italics or boldface may be used for emphasis. Case names must be italicized or underlined.
-
-> **(7) Paragraph Numbers.** Paragraphs must be numbered using arabic numerals in briefs. Reference to material in any document that contains paragraph numbers must be to the paragraph number.
-
-> **(8) Page Limitations.**
-
-> > **(A) Page Limit.** A principal brief may not exceed 38 pages, and a reply brief may not exceed 12 pages, excluding any addendum. Footnotes or endnotes must be included in the page count.
-
-> > **(B) Page Limit for N.D.R.Civ.P. 54(b) Certification.** An argument on the appropriateness of N.D.R.Civ.P. 54(b) certification may not exceed 5 pages. Page limits for Rule 54(b) certification are in addition to the limits set forth in (8)(A).
-
-**(b) Form of Other Documents.**
-
-> **(1)** All paragraphs must be numbered in documents filed with the court except for exhibits, documents prepared before the action was commenced, or documents not prepared by the parties or court. Reference to material in any document that contains paragraph numbers must be to the paragraph number.
-
-> **(2) Motion.** Rule 27 governs motion content. The form of all motion documents must comply with the requirements of paragraph (b)(4) below.
-
-> **(3) Petition for Rehearing.** Rule 40 governs petition for rehearing content.
-
-> **(4) Other Documents.** Any other document must be reproduced in the manner prescribed by subdivision (a), with the following exceptions:
-
-> > (A) a cover is not necessary if the caption and signature page together contain the information required by subdivision (a); and
-
-> > (B) Paragraph (a)(8) does not apply.
-
-**(c) Non-compliance.** Documents not in compliance with this rule will not be filed.
-
-**(d) Certificate of Compliance.** A brief must include a certificate by the attorney, or a self-represented party, that the document complies with the page limitation. The person preparing the certificate must rely on the page count of the filed electronic document. The certificate must state the number of pages in the document. An inaccurate certification may subject the filer to sanctions.
-
-### N.D.R.App.P. 34 — Oral Argument
-
-**(a) Request for Oral Argument.**
-
-> **(1)** Oral argument generally will be scheduled unless:
-
-> (A) a party has failed to file a timely brief;
-
-> (B) a party has challenged the sufficiency of the findings of fact or the adequacy of the evidence supporting a finding of fact but has failed to provide the court with the related transcripts;
-
-> (C) no request for oral argument has been made by any party as required by Rule 28(h);
-
-> (D) the parties have agreed to waive oral argument; or
-
-> (E) the court, in the exercise of its discretion, determines oral argument is unnecessary.
-
-> **(2) Notice.** The clerk of the supreme court must advise all parties whether oral argument will be scheduled and, if so, the date, time, and place for argument.
-
-> **(3) Participation in Oral Argument.** If oral argument is scheduled, a party that did not request oral argument in a principal brief must provide notice of an intent to participate. The notice must be served and filed within five days of service of the notice of oral argument under this rule.
-
-**(b) Time Allowed for Argument; Postponement.** Regardless of the number of counsel on each side, the appellant will be allowed 30 minutes and the appellee will be allowed 20 minutes to present argument. The appellant may reserve up to 10 minutes for rebuttal by notifying the clerk of court immediately prior to argument. If only one side argues, argument will be limited to 20 minutes. Arguments on motions will be granted only in extraordinary circumstances. A motion to postpone the argument or to allow longer argument must be filed reasonably in advance of the hearing date. A party is not obliged to use all of the time allowed, and the court may terminate the argument at any time.
-
-**(c) Order and Content of Argument.** The appellant opens and may reserve time to conclude the argument. The opening argument may include a fair statement of the case. Counsel must not read at length from briefs, records, or authorities.
-
-**(d) Cross-Appeals and Separate Appeals.** Unless the court directs otherwise, a cross-appeal or separate appeal must be argued when the initial appeal is argued. Parties should not duplicate arguments.
-
-**(e) Nonappearance of a Party.** If oral argument is scheduled and the appellee fails to appear, the court must hear appellant's argument. If the appellant fails to appear the court may hear the appellee's argument. If neither party appears, the case will be decided on the briefs, unless the court orders otherwise.
-
-**(f) Submission on Briefs.** If no oral argument is scheduled under Rule 34(a)(1), the case will be submitted to the court on the briefs, unless the court directs otherwise.
-
-### N.D.R.Ct. 3.4 — Privacy Protection for Filings Made with the Court
-
-**(a) Definitions.**
-
-> (1) "Confidential" means information in a court record as described in Rule 3.4(b)(1) or as ordered by the court, which is protected from public access but remains accessible to the court and the parties.
-
-> (2) "Redact" means to remove confidential information from a court record to protect it.
-
-> (3) "Sealed" means court records that are protected from public access, party access and access by unauthorized court personnel.
-
-**(b) Redacted Filings.**
-
-> (1) In General. Unless the court orders otherwise, a court record that contains an individual's social-security number, taxpayer-identification number, birth date, the name of an individual known to be a minor, or a financial-account number, including any credit, debit, investment or retirement account number, must be redacted to include only:
-
-> > (A) the last four digits of the social-security number and taxpayer-identification number;
-
-> > (B) the year of the individual's birth;
-
-> > (C) the minor's initials;
-
-> > (D) the last four digits of the financial-account number; and
-
-> > (E) if a victim requests, all victim contact information must be redacted from documents to be filed with the court in a criminal or delinquency case.
-
-> (2) Responsibility of Party or Nonparty to Redact. A party or nonparty making a filing with the court is solely responsible for ensuring that information required to be redacted under Rule 3.4(b)(1) does not appear on the filing.
-
-> (3) Exemptions from Redaction Requirement. The redaction requirement does not apply to the following:
-
-> > (A) any case record not accessible to the public under N.D. Sup. Ct. Admin. R. 41(3)(b)(6) and (7);
-
-> > (B) the record of an administrative or agency proceeding;
-
-> > (C) the record of a court or tribunal, if that record was not subject to the redaction requirement when originally filed;
-
-> > (D) a filing covered by Rule 3.4(c);
-
-> > (E) the name of an individual known to be a minor when the minor is a party, including:
-
-> > > (i) in a non-criminal traffic case;
-
-> > > (ii) in a change of name case;
-
-> > > (iii) in a minor conservatorship case;
-
-> > > (iv) named in a domestic violence protection order, disorderly conduct restraining order or sexual assault restraining order;
-
-> > > (v) when the law requires the public disclosure of the minor's full name; or
-
-> > > (vi) as otherwise ordered by the court.
-
-> > (F) a defendant's date of birth in a court filing that is related to criminal matters, non-criminal motor vehicle and game and fish matters, and infractions.
-
-**(c) Procedure to Protect from Public Access.**
-
-> (1) Parties may not seal otherwise public documents by consent or by labeling them "sealed" or "confidential."
-
-> (2) Motion. A party may move that a filing be designated "confidential" or "sealed." In its motion, the party must show that protection of the filing is justified under the factors listed in N.D. Sup. Ct. Admin. R. 41(4)(a). A motion to protect a filing from public access, the filing in question, and any supporting documents, must be filed as "confidential" until the court makes its ruling. A court record may not be designated "confidential" or "sealed" under these rules when reasonable redaction will adequately resolve the issues and protect the parties.
-
-> (3) Court Order. On motion, or on its own, the court may order that a filing be designated "confidential" or "sealed". The court may later order that the filing be made public or order the person who made the filing to file a redacted version for the public record.
-
-**(d) Filing a Confidential Information Form.**
-
-> (1) In General. A filing that contains redacted information must be filed together with a confidential information form (shown in Appendix H) that identifies each item of redacted information and specifies an appropriate identifier that uniquely corresponds to each item listed. The form will be confidential except as to the parties or as the court may direct. Any reference in the case to a listed identifier will be construed to refer to the corresponding item of information.
-
-> (2) Defendant Information. In a criminal case, the prosecutor must file a confidential information form that includes, when known, the defendant's social security number.
-
-**(e) Non-conforming Documents.**
-
-> (1) Waiver. A person waives the protection of Rule 3.4(b) as to the person's own information by filing it without redaction or without moving that the information be protected from public access.
-
-> (2) An individual may apply to the court to redact the individual's own improperly included protected information from a filed document and the clerk of court must temporarily restrict access to the document pending order by the court.
-
-> (3) If the court finds protected information was improperly included in a filed document, the court must restrict access to the document and may order a properly redacted document to be filed.
-
-**(f) Sanctions.** If a filer fails to comply with this rule, the court, upon its own motion or upon the motion of any party, may impose sanctions. Sanctions may include:
-
-> (1) an order requiring the pleading or other document to be returned to the party for redaction;
-
-> (2) an order striking the document; and
-
-> (3) an award of attorney's fees and costs to an individual required to bring a motion under Rule 3.4(e)(2).
+#### Responsibility:
+The filing party is responsible for ensuring that confidential information is properly redacted or filed in the confidential appendix.
