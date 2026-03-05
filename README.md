@@ -3,6 +3,11 @@
 Checks appellate brief PDFs for compliance with the North Dakota Rules of Appellate Procedure and produces an HTML compliance report with a recommended action: **Accept**, **Correction Letter**, or **Reject**.
 
 ---
+## Installing the Skill in Claude (Desktop)
+
+<img width="541" height="318" alt="image" src="https://github.com/user-attachments/assets/037bf067-2090-4fbf-a33b-f810e7e96d08" />
+
+Download the zip from the releases here, and in your desktop app, select Cowork and Customize. Then click Skills and the plus sign to add the zip skill file you just downloaded.
 
 ## Installing the Skill in Claude (Browser)
 
