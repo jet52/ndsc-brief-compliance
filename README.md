@@ -187,11 +187,12 @@ python app.py
 
 ## Architecture
 
-- **`core/`** — Shared analysis engine (PDF extraction, mechanical checks, semantic checks, report builder)
-- **`scripts/`** — CLI scripts for the Claude Code skill workflow (`check_brief.py`, `build_report.py`, `check_rule_freshness.py`)
-- **`references/`** — Check definitions, rules summary, and bundled rule text
+- **`skill/`** — Deployable skill content (symlinked to `~/.claude/skills/jetbriefcheck/`):
+  - `SKILL.md` — Self-contained Claude Code skill definition (bundles all rules and check definitions inline; works with or without PyMuPDF)
+  - `core/` — Shared analysis engine (PDF extraction, mechanical checks, semantic checks, report builder)
+  - `scripts/` — CLI scripts for the Claude Code skill workflow (`check_brief.py`, `build_report.py`, `check_rule_freshness.py`)
+  - `references/` — Check definitions, rules summary, and bundled rule text
 - **`web/`** — Flask web interface (upload form, report viewer, JSON API)
-- **`SKILL.md`** — Self-contained Claude Code skill definition (bundles all rules and check definitions inline; works with or without PyMuPDF)
 - **`deploy_skill.py`** — Cross-platform script to deploy the skill to `~/.claude/skills/`
 
 ## Skill Deployment (Claude Code CLI)
@@ -206,7 +207,7 @@ Re-run after making changes in the repo to sync them to the deployed skill. Work
 
 ## Bundled Rules
 
-The full text of the following rules is bundled in `references/rules/`:
+The full text of the following rules is bundled in `skill/references/rules/`:
 
 | File | Rule | Subject |
 |------|------|---------|
@@ -224,7 +225,7 @@ Rules were last verified current against ndcourts.gov on **2026-03-07**.
 
 ## Rule Freshness Checking
 
-The skill automatically checks whether bundled rules are still current by comparing their effective dates against the live versions on ndcourts.gov. This check runs as part of the normal compliance workflow via `get_version_warnings()` in `core/version_check.py`.
+The skill automatically checks whether bundled rules are still current by comparing their effective dates against the live versions on ndcourts.gov. This check runs as part of the normal compliance workflow via `get_version_warnings()` in `skill/core/version_check.py`.
 
 - **Cached**: Results are stored in `~/.cache/jetbriefcheck/rule_staleness.json` and reused for 90 days. No network calls on most runs.
 - **Fail-open**: If ndcourts.gov is unreachable, the check silently succeeds.
@@ -233,7 +234,7 @@ The skill automatically checks whether bundled rules are still current by compar
 To force a live check (bypassing the cache):
 
 ```bash
-python3 scripts/check_rule_freshness.py
+python3 skill/scripts/check_rule_freshness.py
 ```
 
-When a rule is flagged as stale, update the bundled `.md` file, update `BUNDLED_EFFECTIVE_DATES` in `core/version_check.py`, recompute hashes in `version.json`, and bump `rules_verified`.
+When a rule is flagged as stale, update the bundled `.md` file, update `BUNDLED_EFFECTIVE_DATES` in `skill/core/version_check.py`, recompute hashes in `skill/version.json`, and bump `rules_verified`.

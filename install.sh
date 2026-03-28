@@ -10,16 +10,15 @@ echo "Installing $SKILL_NAME skill..."
 # Create target directory
 mkdir -p "$INSTALL_DIR"
 
-# Copy skill files
-ITEMS=(SKILL.md scripts references core requirements.txt version.json)
-for item in "${ITEMS[@]}"; do
-    src="$SCRIPT_DIR/$item"
-    if [ -e "$src" ]; then
-        rm -rf "$INSTALL_DIR/$item"
-        cp -a "$src" "$INSTALL_DIR/$item"
-        echo "  Copied: $item"
-    fi
-done
+# Copy skill/ contents
+if [ -d "$SCRIPT_DIR/skill" ]; then
+    rm -rf "$INSTALL_DIR"
+    cp -a "$SCRIPT_DIR/skill" "$INSTALL_DIR"
+    echo "  Copied skill/ contents"
+else
+    echo "ERROR: skill/ directory not found in $SCRIPT_DIR"
+    exit 1
+fi
 
 echo "Installed to $INSTALL_DIR"
 

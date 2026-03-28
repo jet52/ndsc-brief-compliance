@@ -19,12 +19,7 @@ jobs:
           dest="$tmp/jetbriefcheck"
           mkdir -p "$dest"
 
-          cp -r core "$dest/core"
-          cp -r references "$dest/references"
-          cp -r scripts "$dest/scripts"
-          cp SKILL.md "$dest/SKILL.md"
-          cp requirements.txt "$dest/requirements.txt"
-          cp version.json "$dest/version.json"
+          cp -r skill/* "$dest/"
 
           find "$dest" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
           find "$dest" -name '*.pyc' -delete 2>/dev/null || true

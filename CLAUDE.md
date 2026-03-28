@@ -10,7 +10,7 @@ Checks appellate brief PDFs for compliance with North Dakota Rules of Appellate 
 
 ```bash
 # Setup
-uv venv && uv pip install -r requirements.txt
+uv venv && uv pip install -r skill/requirements.txt
 source .venv/bin/activate
 
 # Run web interface

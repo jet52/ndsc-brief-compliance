@@ -11,18 +11,17 @@ Write-Host "Installing $SkillName skill..."
 # Create target directory
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
-# Copy skill files
-$Items = @("SKILL.md", "scripts", "references", "core", "requirements.txt", "version.json")
-foreach ($item in $Items) {
-    $src = Join-Path $ScriptDir $item
-    $dst = Join-Path $InstallDir $item
-    if (Test-Path $src) {
-        if (Test-Path $dst) {
-            Remove-Item -Recurse -Force $dst
-        }
-        Copy-Item -Path $src -Destination $dst -Recurse -Force
-        Write-Host "  Copied: $item"
+# Copy skill/ contents
+$SkillSrc = Join-Path $ScriptDir "skill"
+if (Test-Path $SkillSrc) {
+    if (Test-Path $InstallDir) {
+        Remove-Item -Recurse -Force $InstallDir
     }
+    Copy-Item -Path $SkillSrc -Destination $InstallDir -Recurse -Force
+    Write-Host "  Copied skill/ contents"
+} else {
+    Write-Host "ERROR: skill/ directory not found in $ScriptDir" -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "Installed to $InstallDir"
